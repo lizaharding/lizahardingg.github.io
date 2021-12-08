@@ -1,0 +1,139 @@
+library(tidyverse)
+library(readxl)
+library(janitor)
+library(easystats)
+library(broom)
+
+df <- read_xlsx("AnalysisFinalProj.xlsx","demographics ")
+df1 <- read_xlsx("AnalysisFinalProj.xlsx","Geographical")
+df2 <- read_xlsx("AnalysisFinalProj.xlsx","Illegal")
+
+#cleaned geographic and socioeconomic sheet a.k.a Clean1
+df1<- df1 %>% 
+  filter(`Geo/socieconomic` !="TOTAL") %>% 
+  filter(str_detect(`Geo/socieconomic`,"or",negate = TRUE))
+df1[df1 =="*"] <- NA
+
+clean1 <- df1 %>% 
+  pivot_longer(starts_with("12+"),
+               names_to = "YearA",
+               values_to = "12+" )%>% 
+  mutate(YearA= str_replace_all(YearA,"12+...2", "2019")) %>% 
+  mutate(YearA= str_replace_all(YearA,"12+...3", "2020")) %>% 
+  pivot_longer(starts_with("12-17"),
+               names_to = "YearB",
+               values_to = "12-17")%>%  
+  mutate(YearB = str_replace_all(YearB,"12-17...4","2019")) %>% 
+  mutate(YearB = str_replace_all(YearB,"12-17...5","2020")) %>% 
+  mutate(YearB = as.numeric(YearB)) %>% 
+  pivot_longer(starts_with("18+"),
+               names_to = "YearC",
+               values_to = "18+") %>% 
+  mutate(YearC = str_replace_all(YearC,"18+...6","2019")) %>% 
+  mutate(YearC = str_replace_all(YearC,"18+...7","2020")) %>% 
+  pivot_longer(starts_with("18-25"),
+               names_to = "YearD",
+               values_to = "18-25" )%>% 
+  mutate(YearD= str_replace_all(YearD,"18-25...8", "2019")) %>% 
+  mutate(YearD= str_replace_all(YearD,"18-25...9", "2020")) %>% 
+  pivot_longer(starts_with("26+"),
+               names_to = "YearE",
+               values_to = "26+") %>% 
+  mutate(YearE = str_replace_all(YearB,"26+...10","2019")) %>% 
+  mutate(YearE = str_replace_all(YearB,"26+...11","2020")) %>% 
+  mutate(YearE = as.numeric(YearE))
+
+#cleaned ages broken down a.k.a Clean2
+df2<- df2 %>% 
+  filter(Age !="TOTAL") %>% 
+  filter(str_detect(Age,"or",negate = TRUE))
+df2[df2 =="*"] <- NA
+
+ clean2 <- df2 %>% 
+   pivot_longer(starts_with("Lifetime"),
+                names_to = "Year",
+                values_to = "Lifetime_use",
+                names_prefix = "Lifetime_")%>% 
+   mutate(Year= str_replace_all(Year,"Lifetime...2", "2019")) %>% 
+   mutate(Year= str_replace_all(Year,"Lifetime...3", "2020")) %>% 
+   pivot_longer(starts_with("Past Year"),
+                names_to = "YearB",
+                values_to = "Past_Year_Use") %>% 
+   mutate(YearB = str_replace_all(YearB,"Past Year...4","2019")) %>% 
+   mutate(YearB = str_replace_all(YearB,"Past Year...5","2020")) %>% 
+   mutate(YearB = as.numeric(YearB)) %>% 
+   pivot_longer(starts_with("Past Month"),
+                names_to = "YearC",
+                values_to = "Past_Month_Use") %>% 
+   mutate(YearC = str_replace_all(YearC,"Past Month...6","2019")) %>% 
+   mutate(YearC = str_replace_all(YearC,"Past Month...7","2020")) %>% 
+   mutate(YearC = as.numeric(YearC))
+
+#cleaned demographic a.k.a Clean
+ df<- df %>% 
+   filter(Demograph !="TOTAL") %>% 
+   filter(str_detect(Demograph,"or",negate = TRUE))
+ df[df =="*"] <- NA
+ 
+ clean <- df %>% 
+   pivot_longer(starts_with("12+"),
+                names_to = "YearA",
+                values_to = "12+" )%>% 
+   mutate(YearA= str_replace_all(YearA,"12+...2", "2019")) %>% 
+   mutate(YearA= str_replace_all(YearA,"12+...3", "2020")) %>% 
+   pivot_longer(starts_with("12-17"),
+                names_to = "YearB",
+                values_to = "12-17")%>%  
+   mutate(YearB = str_replace_all(YearB,"12-17...4","2019")) %>% 
+   mutate(YearB = str_replace_all(YearB,"12-17...5","2020")) %>% 
+   mutate(YearB = as.numeric(YearB)) %>% 
+   pivot_longer(starts_with("18+"),
+                names_to = "YearC",
+                values_to = "18+") %>% 
+   mutate(YearC = str_replace_all(YearC,"18+...6","2019")) %>% 
+   mutate(YearC = str_replace_all(YearC,"18+...7","2020")) %>% 
+   pivot_longer(starts_with("18-25"),
+                names_to = "YearD",
+                values_to = "18-25" )%>% 
+   mutate(YearD= str_replace_all(YearD,"18-25...8", "2019")) %>% 
+   mutate(YearD= str_replace_all(YearD,"18-25...9", "2020")) %>% 
+   pivot_longer(starts_with("26+"),
+                names_to = "YearE",
+                values_to = "26+") %>% 
+   mutate(YearE = str_replace_all(YearB,"26+...10","2019")) %>% 
+   mutate(YearE = str_replace_all(YearB,"26+...11","2020")) %>% 
+   mutate(YearE = as.numeric(YearE)) 
+ 
+ #glm for each
+ mod1 <- glm(data = clean,
+             formula = as.factor()~Drug,
+             family = "binomial")
+ summary(mod1)
+ tidy(mod1) %>% 
+   filter(p.value< 0.5)
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ %>% 
+   pivot_longer("26+","18-25","18+","12-17","12+",
+                names_to = "Age",
+                values_to = "Number_Of_People")
+   mutate(Age = str_replace_all(YearB,"26+...10","2019")) %>% 
+   mutate(Age = str_replace_all(Age,"26+...11","2020")) %>% 
+   mutate(Age = as.numeric(Age))
+ 
+   
+   
+   library(kableExtra)
+   df %>% 
+     kableExtra::kable(df[1:5,]) %>% 
+     kableExtra::kable_classic()
