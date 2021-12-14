@@ -15,6 +15,7 @@ library(janitor)
 library(easystats)
 library(broom)
 
+
 df <- read_xlsx("AnalysisFinalProj.xlsx","demographics ")
 df1 <- read_xlsx("AnalysisFinalProj.xlsx","Geographical")
 df2 <- read_xlsx("AnalysisFinalProj.xlsx","Illegal")
