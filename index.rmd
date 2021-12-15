@@ -1,0 +1,463 @@
+---
+title: "index.rmd"
+output: html_document
+---
+
+<div align="center"><font size="7">**Factors Affecting Drug Use**</font></div>
+
+<font size="5">Introduction</font>
+
+SAMHSA, Substance Abuse and Mental Health Services Administrations, is is a branch of the U.S. Department of Health and Human Services that is intended to advance the behavioral health of the nation and to improve the lives of individuals living with mental and substance use disorders. Starting in 2014 SAMHSA introduced the National
+Survey on Drug Use and Health (NSDUH). Using Demographic, geographic and socieconimic data from 2019-2020 survey to determine releatioships between these factors and drug use.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r message=FALSE,warning=FALSE}
+library(tidyverse)
+library(readxl)
+library(janitor)
+library(easystats)
+library(broom)
+library(DT)
+```
+Throughout the data there are acronymes/terms that need defining and are shown below.
+
+* Ethnicity
+   + NHOPI: Native Hawaiian or Other Pacific Islander
+   + AIAN : American Indian or Alaska Native
+* Employment status
+   + Other: students, people keeping house or caring for children full time, retired or disabled people
+* Poverty Level
+   + Poverty Level Defined Relative to the Poverty Threshold ex: "Less Than 100%" refers to people that are not in poverty.
+* Health Insurance
+   + Other: Medicare, military-related health care, or any other type of health insurance
+
+```{r, include=FALSE}
+df <- read_xlsx("AnalysisFinalProj.xlsx","demographics ")
+df1 <- read_xlsx("AnalysisFinalProj.xlsx","Geographical")
+df2 <- read_xlsx("AnalysisFinalProj.xlsx","Illegal")
+df3 <- read_xlsx("AnalysisFinalProj.xlsx","demographics2")
+df4 <- read_xlsx("AnalysisFinalProj.xlsx","Geographical2")
+
+##########################################################################
+#cleaned geographic and socioeconomic sheet in thousands a.k.a Finalclean1
+##########################################################################
+df1<- df1 %>% 
+  filter(`Geo/socieconomic` !="TOTAL") %>% 
+  filter(str_detect(`Geo/socieconomic`,"or",negate = TRUE))
+df1[df1 =="*"] <- NA
+
+clean1 <- df1 %>% 
+  pivot_longer(starts_with("12+"),
+               names_to = "YearA",
+               values_to = "12+" )%>% 
+  mutate(YearA= str_replace_all(YearA,"12+...2", "2019")) %>% 
+  mutate(YearA= str_replace_all(YearA,"12+...3", "2020")) %>% 
+  pivot_longer(starts_with("12-17"),
+               names_to = "YearB",
+               values_to = "12-17")%>%  
+  mutate(YearB = str_replace_all(YearB,"12-17...4","2019")) %>% 
+  mutate(YearB = str_replace_all(YearB,"12-17...5","2020")) %>% 
+  mutate(YearB = as.numeric(YearB)) %>% 
+  pivot_longer(starts_with("18+"),
+               names_to = "YearC",
+               values_to = "18+") %>% 
+  mutate(YearC = str_replace_all(YearC,"18+...6","2019")) %>% 
+  mutate(YearC = str_replace_all(YearC,"18+...7","2020")) %>% 
+  pivot_longer(starts_with("18-25"),
+               names_to = "YearD",
+               values_to = "18-25" )%>% 
+  mutate(YearD= str_replace_all(YearD,"18-25...8", "2019")) %>% 
+  mutate(YearD= str_replace_all(YearD,"18-25...9", "2020")) %>% 
+  pivot_longer(starts_with("26+"),
+               names_to = "YearE",
+               values_to = "26+") %>% 
+  mutate(YearE = str_replace_all(YearB,"26+...10","2019")) %>% 
+  mutate(YearE = str_replace_all(YearB,"26+...11","2020")) %>% 
+  mutate(YearE = as.numeric(YearE))
+
+Finalclean1 <- clean1 %>% 
+   mutate(YearA = case_when(YearA == "12+...2" ~ "2019",
+                            YearA == "12+...3" ~ "2020")) %>%
+   mutate(YearA = as.numeric(YearA)) %>% 
+   mutate(YearC = case_when(YearC == "18+...6" ~ "2019",
+                            YearC == "18+...7" ~ "2020")) %>% 
+   mutate(YearC = as.numeric(YearC)) %>%
+   mutate(YearD = as.numeric(YearD)) %>% 
+   pivot_longer(starts_with("Year"), names_to = "YearX",values_to = "Year") %>% 
+   pivot_longer(c("12+","12-17","18+","18-25","26+"),names_to = "AgeGroup",values_to = "Users") %>% 
+   mutate(AgeGroup = str_replace_all(AgeGroup,"26\\+","26&up")) %>% 
+   filter(str_detect(AgeGroup, "\\+",negate = TRUE)) %>% 
+   select(-YearX) %>% 
+   unique.data.frame()
+
+
+##########################################################################
+#cleaned geographic and socioeconomic sheet percentages a.k.a Finalclean4
+##########################################################################
+df4<- df4 %>% 
+   filter(`Geo/socieconomic` !="TOTAL") %>% 
+   filter(str_detect(`Geo/socieconomic`,"or",negate = TRUE))
+df4[df4 =="*"] <- NA
+
+clean4 <- df4 %>% 
+   pivot_longer(starts_with("12+"),
+                names_to = "YearA",
+                values_to = "12+" )%>% 
+   mutate(YearA= str_replace_all(YearA,"12+...2", "2019")) %>% 
+   mutate(YearA= str_replace_all(YearA,"12+...3", "2020")) %>% 
+   pivot_longer(starts_with("12-17"),
+                names_to = "YearB",
+                values_to = "12-17")%>%  
+   mutate(YearB = str_replace_all(YearB,"12-17...4","2019")) %>% 
+   mutate(YearB = str_replace_all(YearB,"12-17...5","2020")) %>% 
+   mutate(YearB = as.numeric(YearB)) %>% 
+   pivot_longer(starts_with("18+"),
+                names_to = "YearC",
+                values_to = "18+") %>% 
+   mutate(YearC = str_replace_all(YearC,"18+...6","2019")) %>% 
+   mutate(YearC = str_replace_all(YearC,"18+...7","2020")) %>% 
+   pivot_longer(starts_with("18-25"),
+                names_to = "YearD",
+                values_to = "18-25" )%>% 
+   mutate(YearD= str_replace_all(YearD,"18-25...8", "2019")) %>% 
+   mutate(YearD= str_replace_all(YearD,"18-25...9", "2020")) %>% 
+   pivot_longer(starts_with("26+"),
+                names_to = "YearE",
+                values_to = "26+") %>% 
+   mutate(YearE = str_replace_all(YearB,"26+...10","2019")) %>% 
+   mutate(YearE = str_replace_all(YearB,"26+...11","2020")) %>% 
+   mutate(YearE = as.numeric(YearE))
+
+Finalclean4 <- clean4 %>% 
+   mutate(YearA = case_when(YearA == "12+...2" ~ "2019",
+                            YearA == "12+...3" ~ "2020")) %>%
+   mutate(YearA = as.numeric(YearA)) %>% 
+   mutate(YearC = case_when(YearC == "18+...6" ~ "2019",
+                            YearC == "18+...7" ~ "2020")) %>% 
+   mutate(YearC = as.numeric(YearC)) %>%
+   mutate(YearD = as.numeric(YearD)) %>% 
+   pivot_longer(starts_with("Year"), names_to = "YearX",values_to = "Year") %>% 
+   pivot_longer(c("12+","12-17","18+","18-25","26+"),names_to = "AgeGroup",values_to = "Users") %>% 
+   mutate(AgeGroup = str_replace_all(AgeGroup,"26\\+","26&up")) %>% 
+   filter(str_detect(AgeGroup, "\\+",negate = TRUE)) %>% 
+   select(-YearX) %>% 
+   unique.data.frame()
+
+
+########################################
+#cleaned ages broken down a.k.a Clean2
+########################################
+df2<- df2 %>% 
+  filter(Age !="TOTAL") %>% 
+  filter(str_detect(Age,"or",negate = TRUE))
+df2[df2 =="*"] <- NA
+
+ clean2 <- df2 %>% 
+   pivot_longer(starts_with("Lifetime"),
+                names_to = "Year",
+                values_to = "Lifetime_use",
+                names_prefix = "Lifetime_")%>% 
+   mutate(Year= str_replace_all(Year,"Lifetime...2", "2019")) %>% 
+   mutate(Year= str_replace_all(Year,"Lifetime...3", "2020")) %>% 
+   pivot_longer(starts_with("Past Year"),
+                names_to = "YearB",
+                values_to = "Past_Year_Use") %>% 
+   mutate(YearB = str_replace_all(YearB,"Past Year...4","2019")) %>% 
+   mutate(YearB = str_replace_all(YearB,"Past Year...5","2020")) %>% 
+   mutate(YearB = as.numeric(YearB)) %>% 
+   pivot_longer(starts_with("Past Month"),
+                names_to = "YearC",
+                values_to = "Past_Month_Use") %>% 
+   mutate(YearC = str_replace_all(YearC,"Past Month...6","2019")) %>% 
+   mutate(YearC = str_replace_all(YearC,"Past Month...7","2020")) %>% 
+   mutate(YearC = as.numeric(YearC))
+
+ #####################################
+ #cleaned demographic a.k.a Finalclean
+ #####################################
+ df<- df %>% 
+   filter(Demograph !="TOTAL")
+ df[df =="*"] <- NA
+ 
+ clean <- df %>% 
+   pivot_longer(starts_with("12+"),
+                names_to = "YearA",
+                values_to = "12+" )%>% 
+   mutate(YearA= str_replace_all(YearA,"12+...2", "2019")) %>% 
+   mutate(YearA= str_replace_all(YearA,"12+...3", "2020")) %>% 
+   pivot_longer(starts_with("12-17"),
+                names_to = "YearB",
+                values_to = "12-17")%>%  
+   mutate(YearB = str_replace_all(YearB,"12-17...4","2019")) %>% 
+   mutate(YearB = str_replace_all(YearB,"12-17...5","2020")) %>% 
+   mutate(YearB = as.numeric(YearB)) %>% 
+   pivot_longer(starts_with("18+"),
+                names_to = "YearC",
+                values_to = "18+") %>% 
+   mutate(YearC = str_replace_all(YearC,"18+...6","2019")) %>% 
+   mutate(YearC = str_replace_all(YearC,"18+...7","2020")) %>% 
+   pivot_longer(starts_with("18-25"),
+                names_to = "YearD",
+                values_to = "18-25" )%>% 
+   mutate(YearD= str_replace_all(YearD,"18-25...8", "2019")) %>% 
+   mutate(YearD= str_replace_all(YearD,"18-25...9", "2020")) %>% 
+   pivot_longer(starts_with("26+"),
+                names_to = "YearE",
+                values_to = "26+") %>% 
+   mutate(YearE = str_replace_all(YearB,"26+...10","2019")) %>% 
+   mutate(YearE = str_replace_all(YearB,"26+...11","2020")) %>% 
+   mutate(YearE = as.numeric(YearE)) 
+ clean$Demograph
+ Finalclean <- clean %>% 
+    mutate(YearA = case_when(YearA == "12+...2" ~ "2019",
+                             YearA == "12+...3" ~ "2020")) %>%
+    mutate(YearA = as.numeric(YearA)) %>% 
+    mutate(YearC = case_when(YearC == "18+...6" ~ "2019",
+                             YearC == "18+...7" ~ "2020")) %>% 
+    mutate(YearC = as.numeric(YearC)) %>%
+    mutate(YearD = as.numeric(YearD)) %>% 
+    pivot_longer(starts_with("Year"), names_to = "YearX",values_to = "Year") %>% 
+    pivot_longer(c("12+","12-17","18+","18-25","26+"),names_to = "AgeGroup",values_to = "Users") %>% 
+    mutate(AgeGroup = str_replace_all(AgeGroup,"26\\+","26&up")) %>% 
+    filter(str_detect(AgeGroup, "\\+",negate = TRUE)) %>% 
+    select(-YearX) %>% 
+    unique.data.frame()
+    
+ ###################################################
+ #cleaned demographic percentages a.k.a Finalclean3
+ ###################################################
+ df3<- df3 %>% 
+    filter(Demograph !="TOTAL") 
+ df3[df3 =="*"] <- NA
+ 
+ clean3 <- df3 %>% 
+    pivot_longer(starts_with("12+"),
+                 names_to = "YearA",
+                 values_to = "12+" )%>% 
+    mutate(YearA= str_replace_all(YearA,"12+...2", "2019")) %>% 
+    mutate(YearA= str_replace_all(YearA,"12+...3", "2020")) %>% 
+    pivot_longer(starts_with("12-17"),
+                 names_to = "YearB",
+                 values_to = "12-17")%>%  
+    mutate(YearB = str_replace_all(YearB,"12-17...4","2019")) %>% 
+    mutate(YearB = str_replace_all(YearB,"12-17...5","2020")) %>% 
+    mutate(YearB = as.numeric(YearB)) %>% 
+    pivot_longer(starts_with("18+"),
+                 names_to = "YearC",
+                 values_to = "18+") %>% 
+    mutate(YearC = str_replace_all(YearC,"18+...6","2019")) %>% 
+    mutate(YearC = str_replace_all(YearC,"18+...7","2020")) %>% 
+    pivot_longer(starts_with("18-25"),
+                 names_to = "YearD",
+                 values_to = "18-25" )%>% 
+    mutate(YearD= str_replace_all(YearD,"18-25...8", "2019")) %>% 
+    mutate(YearD= str_replace_all(YearD,"18-25...9", "2020")) %>% 
+    pivot_longer(starts_with("26+"),
+                 names_to = "YearE",
+                 values_to = "26+") %>% 
+    mutate(YearE = str_replace_all(YearB,"26+...10","2019")) %>% 
+    mutate(YearE = str_replace_all(YearB,"26+...11","2020")) %>% 
+    mutate(YearE = as.numeric(YearE)) 
+ clean3$Demograph
+ Finalclean3 <- clean3 %>% 
+    mutate(YearA = case_when(YearA == "12+...2" ~ "2019",
+                             YearA == "12+...3" ~ "2020")) %>%
+    mutate(YearA = as.numeric(YearA)) %>% 
+    mutate(YearC = case_when(YearC == "18+...6" ~ "2019",
+                             YearC == "18+...7" ~ "2020")) %>% 
+    mutate(YearC = as.numeric(YearC)) %>%
+    mutate(YearD = as.numeric(YearD)) %>% 
+    pivot_longer(starts_with("Year"), names_to = "YearX",values_to = "Year") %>% 
+    pivot_longer(c("12+","12-17","18+","18-25","26+"),names_to = "AgeGroup",values_to = "Users") %>% 
+    mutate(AgeGroup = str_replace_all(AgeGroup,"26\\+","26&up")) %>% 
+    filter(str_detect(AgeGroup, "\\+",negate = TRUE)) %>% 
+    select(-YearX) %>% 
+    unique.data.frame()
+ 
+ 
+ ######################
+ #Numbers in thousands
+ ######################
+ Finalclean$Users <- as.numeric(Finalclean$Users)
+ Finalclean1$Users <- as.numeric(Finalclean1$Users)
+ Finalclean$Demograph
+ Finalclean1$`Geo/socieconomic`
+ 
+ lean_sex <- Finalclean %>% 
+    filter(Demograph %in% c("Male","Female"))
+
+ clean_education <- Finalclean %>% 
+    filter(Demograph %in% c("Some College/Associate’s Degree","< High School","College Graduate",
+                            "High School Graduate"))
+ Finalclean$Demograph %>% 
+    table()
+ 
+ 
+ clean_Ethnicity <- Finalclean %>% 
+    filter(Demograph %in% c("White","AIAN","NHOPI","Asian","Black or African American","Two or More Races","Hispanic or Lation"))
+ 
+ clean_Work <- Finalclean %>% 
+    filter(Demograph %in% c("Full-Time","Part-Time","Unemployed","Other1"))
+ 
+ Clean_region <- Finalclean1 %>% 
+    filter(`Geo/socieconomic` %in% c("Midwest","South","West"))
+ 
+ Clean_Metro <- Finalclean1 %>% 
+    filter(`Geo/socieconomic` %in% c("Large Metro", "Small Metro","Nonmetro","Urbanized","Less Urbanized","Completely Rural"))
+ 
+Clean_Insurance <- Finalclean1 %>% 
+   filter(`Geo/socieconomic` %in% c("Private","Medicaid/CHIP","Other3","No Coverage"))
+ 
+Clean_Poverty <- Finalclean1 %>% 
+   filter(`Geo/socieconomic` %in% c("Less Than 100%","100-199%","200% or More"))
+ 
+ ######################
+ #number in Percentages
+ ######################
+ Finalclean3$Users <- as.numeric(Finalclean3$Users)
+Finalclean4$Users <- as.numeric(Finalclean4$Users)
+ Finalclean3$Demograph
+ Finalclean4$`Geo/socieconomic`
+ 
+ lean_sex2 <- Finalclean3 %>% 
+    filter(Demograph %in% c("Male","Female"))
+ 
+ clean_education2 <- Finalclean3 %>% 
+    filter(Demograph %in% c("Some College/Associate’s Degree","< High School","College Graduate",
+                            "High School Graduate"))
+ clean_Ethnicity2 <- Finalclean3 %>% 
+    filter(Demograph %in% c("White","AIAN","NHOPI","Asian","Black or African American","Two or More Races","Hispanic or Lation"))
+ 
+ clean_Work2 <- Finalclean3 %>% 
+    filter(Demograph %in% c("Full-Time","Part-Time","Unemployed","Other1"))
+ 
+ Clean_region2 <- Finalclean4 %>% 
+    filter(`Geo/socieconomic` %in% c("Midwest","South","West"))
+ 
+ Clean_Metro2 <- Finalclean4 %>% 
+    filter(`Geo/socieconomic` %in% c("Large Metro", "Small Metro","Nonmetro","Urbanized","Less Urbanized","Completely Rural"))
+ 
+ Clean_Insurance2 <- Finalclean4 %>% 
+    filter(`Geo/socieconomic` %in% c("Private","Medicaid/CHIP","Other3","No Coverage"))
+ 
+ Clean_Poverty2 <- Finalclean4 %>% 
+    filter(`Geo/socieconomic` %in% c("Less Than 100%","100-199%","200% or More"))
+ 
+
+
+
+```
+The setup of the data
+```{r}
+datatable(Finalclean) 
+datatable(Finalclean1)
+```
+
+The questions I was interested in revolved around gender, ethnicity, education and work status. Did men or women take more and did the type of drug be in illegal or misuse of prescription medications make a difference. Considering stereotypes regarding drug use and ethnicity do the assumptions hold true? Does less education and lack of a job lead to drug use? One issue that arises early on is the biases of the data. Were some groups sampled more and does this data accuratly depict the drug usage in the united states?
+
+The image below shows the distribution of responses, Yes or No, for each ethnicity. For most medications each ethnicity is equal represented except NHOPI and ocassionally AIAN. White people responded more frequently to questions involving crack which is important later on in the analysis.
+```{r fig.align='center',warning=FALSE}
+l<- clean_Ethnicity %>% 
+    filter(Time == "Lifetime") %>% 
+    group_by(Demograph,Drug) %>% 
+    summarize(N=n()) %>% 
+    ggplot(aes(x=Demograph,y=N, fill=Demograph))+
+    geom_col()+
+    facet_wrap(~Drug)
+ l+ theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+```
+
+Using just raw numbers in the thousands to compare ethnicities its quite clear to see that white people take way more drugs.
+```{r fig.align='center',warning=FALSE,fig.width = 15}
+clean_Ethnicity %>% 
+    ggplot(aes(x=AgeGroup,y=Users,color=Demograph))+
+    geom_boxplot()+
+    facet_wrap(~Drug,scales="free_y")
+```
+
+One problem with this approach is that doesn't take into account that despite a lot of white people taking each of those drugs but they are a small percentage of all the white people surveyed. When percentages are used it becomes much more clear that the leading ethnicity greatly depends on which drug as well as age group and varies greatly.
+```{r fig.align='center',warning=FALSE,fig.width = 15}
+clean_Ethnicity2 %>% 
+    ggplot(aes(x=AgeGroup,y=Users,color=Demograph))+
+    geom_boxplot()+
+    facet_wrap(~Drug,scales="free_y")
+```
+
+Using GLM with the following formula
+
+glm(data = ., formula = Users ~ AgeGroup + Demograph + Drug) %>% 
+          tidy() %>% 
+          filter(p.value< 0.5)
+
+A strong model with a substantial R^2= 0.56 showing that Age, Ethnicity and Drug are strong predictors of drug use.
+```{r warning=FALSE}
+p <- clean_Ethnicity2 %>% 
+          glm(data = ., formula = Users ~ AgeGroup + Demograph + Drug) %>% 
+          tidy() %>% 
+          filter(p.value< 0.5)
+      datatable(p)
+```
+
+Here are some nice models showing Gender, Education and Work status and there releationship with drug use
+```{r fig.align='center',warning=FALSE,fig.width = 15}
+lean_sex2 %>% 
+    ggplot(aes(x=AgeGroup,y=Users,color=Demograph))+
+    geom_boxplot()+
+    facet_wrap(~Drug,scales="free_y")
+```
+Men take more illegal drugs and women are more likely to abuse prescribed medications
+
+```{r fig.align='center',warning=FALSE,fig.width = 15}
+clean_education2 %>% 
+    filter(AgeGroup != "12-17") %>% 
+    filter(AgeGroup !="18-25") %>% 
+    ggplot(aes(x=AgeGroup,y=Users,color=Demograph)) +
+    geom_boxplot() +
+    facet_wrap(~Drug, scales="free_y")
+ 
+```
+
+```{r fig.align='center',warning=FALSE,fig.width = 15}
+clean_Work2 %>% 
+   filter(AgeGroup != "12-17") %>%
+   ggplot(aes(x=AgeGroup,y=Users, color=Demograph))+
+   geom_boxplot()+
+   facet_wrap(~Drug,scales="free_y")
+```
+
+Using factors such as gender, education, work status and ethnicity, while holding age, use in lifetime and drug  as constants, which will produce the most accutate model? The following models will be used to determine this.
+```{r message=FALSE,warning=FALSE}
+moda<- clean_education %>% 
+    filter(AgeGroup != "26%up") %>%
+    filter(Time == "Lifetime") %>%
+    glm(data = ., formula = Users ~ AgeGroup + Demograph +Drug)
+
+modb <- lean_sex2 %>% 
+         filter(AgeGroup != "26%up") %>%
+         filter(Time == "Lifetime") %>%
+         glm(data = ., formula = Users ~ AgeGroup + Demograph+ Drug) 
+modc<- clean_Ethnicity2 %>% 
+         filter(AgeGroup != "26%up") %>%
+         filter(Time == "Lifetime") %>% 
+          glm(data = ., formula = Users ~ AgeGroup + Demograph +Drug)  
+modd<- clean_Work2 %>% 
+   filter(AgeGroup != "26%up") %>%
+   filter(Time == "Lifetime") %>%
+   glm(data = ., formula = Users ~ AgeGroup + Demograph+Drug)
+         
+```
+
+```{r warning=FALSE}
+compare_performance(moda,modb,modc,modd,
+                    rank=TRUE)
+```
+
+```{r warning=FALSE}
+comp<- compare_performance(moda,modb,modc,modd,
+                    rank=TRUE)
+
+comp %>% plot()
+```
